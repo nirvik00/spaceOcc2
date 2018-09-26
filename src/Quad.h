@@ -29,6 +29,7 @@ public:
 	void setup(Seg r, Seg s);
 	void setupPreservePts(Pt, Pt, Pt, Pt);
 	Quad intoff(float);
+	Quad intoffOrtho(float);
 
 	/*	GETTERS & SETTERS	*/
 	vector<Quad> getIntQuadCells();

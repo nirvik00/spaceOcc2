@@ -124,13 +124,46 @@ void Quad::setup(Pt P, float A, float r, int t, float dis) {
 	pts[3].setup(X[0], Y[2]+dis);
 }
 
-Quad Quad::intoff(float dis) {
+Quad Quad::intoffOrtho(float dis) {
 	Pt a = pts[0]; Pt b = pts[1]; Pt c = pts[2]; Pt d = pts[3];
 	float t1 = dis; float t2 = dis;
 	Pt a1(a.x + (c.x - a.x)*dis, a.y + (c.y - a.y)*dis);
 	Pt b1(b.x + (d.x - b.x)*dis, b.y + (d.y - b.y)*dis);
 	Pt c1(c.x + (a.x - c.x)*dis, c.y + (a.y - c.y)*dis);
 	Pt d1(d.x + (b.x - d.x)*dis, d.y + (b.y - d.y)*dis);
+	Quad Q(a1, b1, c1, d1);
+	return Q;
+}
+
+Quad Quad::intoff(float dis) {
+	Pt a = pts[0]; Pt b = pts[1]; Pt c = pts[2]; Pt d = pts[3];
+	float t1 = dis; float t2 = dis;
+	/*
+	//Pt ua((b.x - a.x)*dis / a.di(b), (b.y - a.y)*dis / a.di(b));
+	//Pt va((d.x - a.x)*dis / a.di(d), (d.y - a.y)*dis / a.di(d));
+	Pt ua(0, 0);
+	Pt va(0,0);
+	Pt a1(a.x + ua.x + va.x, a.y + ua.y + va.y);
+
+	//Pt ub((a.x - b.x)*dis / b.di(a), (a.y - b.y)*dis / b.di(a));
+	//Pt vb((c.x - b.x)*dis / b.di(c), (c.y - b.y)*dis / b.di(c));
+	Pt ub(0, 0);
+	Pt vb(0, 0);
+	Pt b1(b.x + ub.x + vb.x, b.y + ub.y + vb.y);
+
+	//Pt uc((b.x - c.x)*dis / c.di(b), (b.y - c.y)*dis / c.di(b));
+	//Pt vc((d.x - c.x)*dis / c.di(d), (d.y - c.y)*dis / c.di(d));
+	Pt uc(0, 0);
+	Pt vc(0, 0);
+	Pt c1(c.x + uc.x + vc.x, c.y + uc.y + vc.y);
+
+	//Pt ud((a.x - d.x)*dis / d.di(a), (a.y - d.y)*dis / d.di(a));
+	//Pt vd((c.x - d.x)*dis / d.di(c), (c.y - d.y)*dis / d.di(c));
+	Pt ud(0, 0);
+	Pt vd(0, 0);
+	Pt d1(d.x + ud.x + vd.x, d.y + ud.y + vd.y);
+	*/
+	Pt a1 = pts[0]; Pt b1 = pts[1]; Pt c1 = pts[2]; Pt d1 = pts[3];
 	Quad Q(a1, b1, c1, d1);
 	return Q;
 }

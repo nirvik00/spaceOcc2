@@ -86,11 +86,33 @@ void GuiApp::construct(int I) {
 void GuiApp::initSubdiv() {
 	subdivVec.clear(); subdivQuadVec.clear(); nestedPeriQuadCellVec.clear();
 	periQuadCellVec.clear(); periCorrVec.clear(); adaptiveGridSegVec.clear();
+
 	for (int i = 0; i < NUMOBJ; i++) {
 		Quad q = quadVec[i];
-		Quad Q = q.intoff(spaceiniquads);
+		float dis = spaceiniquads;
+
+		//construct the offset
+		Pt a = q.pts[0]; Pt b = q.pts[1]; Pt c = q.pts[2]; Pt d = q.pts[3];
+		Pt ua((b.x - a.x)*dis / a.di(b), (b.y - a.y)*dis / a.di(b));
+		Pt va((d.x - a.x)*dis / a.di(d), (d.y - a.y)*dis / a.di(d));
+		Pt a1(a.x + ua.x + va.x, a.y + ua.y + va.y);
+
+		Pt ub((a.x - b.x)*dis / b.di(a), (a.y - b.y)*dis / b.di(a));
+		Pt vb((c.x - b.x)*dis / b.di(c), (c.y - b.y)*dis / b.di(c));
+		Pt b1(b.x + ub.x + vb.x, b.y + ub.y + vb.y);
+
+		Pt uc((b.x - c.x)*dis / c.di(b), (b.y - c.y)*dis / c.di(b));
+		Pt vc((d.x - c.x)*dis / c.di(d), (d.y - c.y)*dis / c.di(d));
+		Pt c1(c.x + uc.x + vc.x, c.y + uc.y + vc.y);
+
+		Pt ud((a.x - d.x)*dis / d.di(a), (a.y - d.y)*dis / d.di(a));
+		Pt vd((c.x - d.x)*dis / d.di(c), (c.y - d.y)*dis / d.di(c));
+		Pt d1(d.x + ud.x + vd.x, d.y + ud.y + vd.y);
+		
+		
+		Quad Q; Q.setupPreservePts (a1, b1, c1, d1);
+
 		subdivQuadVec.clear();
-		//cout << i << ") Length, Depth " << LENGTH[i] << "," << DEPTH[i] << endl;
 		subdiv(Q, 0, SUBDIV[i]);
 		subdivVec.push_back(subdivQuadVec);
 		subdivQuadVec.clear();
@@ -175,11 +197,28 @@ void GuiApp::initPeri() {
 		for (int i = 0; i < quadVec.size(); i++) {
 			vector<Quad> temp;
 			Quad q = quadVec[i];
-			Quad Q = q.intoff(spaceiniquads);
-			Pt a = Q.pts[0];
-			Pt b = Q.pts[1];
-			Pt c = Q.pts[2];
-			Pt d = Q.pts[3];
+
+			float dis = spaceiniquads;
+			//construct the initial offset
+			Pt a = q.pts[0]; Pt b = q.pts[1]; Pt c = q.pts[2]; Pt d = q.pts[3];
+			Pt ua((b.x - a.x)*dis / a.di(b), (b.y - a.y)*dis / a.di(b));
+			Pt va((d.x - a.x)*dis / a.di(d), (d.y - a.y)*dis / a.di(d));
+			Pt a1(a.x + ua.x + va.x, a.y + ua.y + va.y);
+
+			Pt ub((a.x - b.x)*dis / b.di(a), (a.y - b.y)*dis / b.di(a));
+			Pt vb((c.x - b.x)*dis / b.di(c), (c.y - b.y)*dis / b.di(c));
+			Pt b1(b.x + ub.x + vb.x, b.y + ub.y + vb.y);
+
+			Pt uc((b.x - c.x)*dis / c.di(b), (b.y - c.y)*dis / c.di(b));
+			Pt vc((d.x - c.x)*dis / c.di(d), (d.y - c.y)*dis / c.di(d));
+			Pt c1(c.x + uc.x + vc.x, c.y + uc.y + vc.y);
+
+			Pt ud((a.x - d.x)*dis / d.di(a), (a.y - d.y)*dis / d.di(a));
+			Pt vd((c.x - d.x)*dis / d.di(c), (c.y - d.y)*dis / d.di(c));
+			Pt d1(d.x + ud.x + vd.x, d.y + ud.y + vd.y);
+
+			Quad Q; Q.setupPreservePts(a1, b1, c1, d1);
+
 			float D = -2 * DEPTH[i];
 
 			if (a.di(d) > maxD0*DEPTH[i] && b.di(c) > maxD0*DEPTH[i]) {
@@ -289,8 +328,6 @@ void GuiApp::setup()
 	grp1params.add(Plot1SegB.set("plot-1 Seg B?", true));
 	grp1params.add(Plot1SegC.set("plot-1 Seg C?", true));
 	grp1params.add(Plot1SegD.set("plot-1 Seg D?", true));
-	grp1params.add(Subdiv0.set("(slider)Subdiv 0", 1, 0, 5));
-	
 	grp1params.add(Subdiv1.set("(slider)Subdiv 1", 1, 0, 5));
 
 	grp1params.add(blank2.set("object 2"));
@@ -301,8 +338,6 @@ void GuiApp::setup()
 	grp1params.add(Plot2SegB.set("plot-2 Seg B?", true));
 	grp1params.add(Plot2SegC.set("plot-2 Seg C?", true));
 	grp1params.add(Plot2SegD.set("plot-2 Seg D?", true));
-	grp1params.add(Subdiv0.set("(slider)Subdiv 0", 1, 0, 5));
-	
 	grp1params.add(Subdiv2.set("(slider)Subdiv 2", 1, 0, 5));
 
 	grp1params.add(blank3.set("object 3"));
@@ -313,8 +348,6 @@ void GuiApp::setup()
 	grp1params.add(Plot3SegB.set("plot-3 Seg B?", true));
 	grp1params.add(Plot3SegC.set("plot-3 Seg C?", true));
 	grp1params.add(Plot3SegD.set("plot-3 Seg D?", true));
-	grp1params.add(Subdiv0.set("(slider)Subdiv 0", 1, 0, 5));
-
 	grp1params.add(Subdiv3.set("(slider)Subdiv 3", 1, 0, 5));
 
 	grp1params.add(blank4.set("object 4"));
@@ -325,7 +358,6 @@ void GuiApp::setup()
 	grp1params.add(Plot4SegB.set("plot-4 Seg B?", true));
 	grp1params.add(Plot4SegC.set("plot-4 Seg C?", true));
 	grp1params.add(Plot4SegD.set("plot-4 Seg D?", true));
-	grp1params.add(Subdiv0.set("(slider)Subdiv 0", 1, 0, 5));
 	grp1params.add(Subdiv4.set("(slider)Subdiv 4", 1, 0, 5));
 
 	grp1params.add(blank5.set("object 5"));
@@ -338,7 +370,7 @@ void GuiApp::setup()
 
 	GlobalLoc.setup(300, 100);
 	
-	grp2params.add(spaceiniquads.set("inital quad spacing", 0.1,0,1));
+	grp2params.add(spaceiniquads.set("inital quad spacing", 5,0,20));
 	grp2params.add(transX.set("translate X", 0, 0, ofGetWidth()/2));
 	grp2params.add(transY.set("translate Y", 0, 0, ofGetHeight()/2));
 	gui2.setup(grp2params);
@@ -364,6 +396,8 @@ void GuiApp::update()
 	if (drawAdaptiveGrid==1) {
 		genAdaptiveGrid();
 	}
+
+	
 }
 
 void GuiApp::draw()
@@ -427,6 +461,13 @@ void GuiApp::draw()
 
 	gui.draw();
 	gui2.draw();	
+	for (int i = 0; i < quadVec.size(); i++) {
+		for (int j = 0; j < 4; j++) {
+			Pt p = quadVec[i].pts[j];
+			ofNoFill(); ofEllipse(p.x + transX, p.y + transY, 20, 20);
+		}
+	}
+
 }
 
 void GuiApp::keyPressed(int key) {
@@ -443,26 +484,25 @@ void GuiApp::keyPressed(int key) {
 }
 
 void GuiApp::mouseMoved(int x, int y) {
-
+	for (int i = 0; i < quadVec.size(); i++) {
+		if (quadVec[i].pts[0].di(Pt(x - transX, y - transY)) < 25) { quadVec[i].pts[0].setSelected(1); } else { quadVec[i].pts[0].setSelected(0); }
+		if (quadVec[i].pts[1].di(Pt(x - transX, y - transY)) < 25) { quadVec[i].pts[1].setSelected(1); } else { quadVec[i].pts[1].setSelected(0); }
+		if (quadVec[i].pts[2].di(Pt(x - transX, y - transY)) < 25) { quadVec[i].pts[2].setSelected(1); } else { quadVec[i].pts[2].setSelected(0); }
+		if (quadVec[i].pts[3].di(Pt(x - transX, y - transY)) < 25) { quadVec[i].pts[3].setSelected(1); } else { quadVec[i].pts[3].setSelected(0); }
+	}
 }
 
 void GuiApp::mousePressed(int x, int y, int button) {
-	for (int i = 0; i < quadVec.size(); i++) {
-		for (int j = 0; j < 4; j++) {
-			if (quadVec[i].pts[j].di(Pt(x, y)) < 25) {
-				quadVec[i].pts[j].setSelected(1);
-			}
-		}
-	}
+	
 }
 
 void GuiApp::mouseDragged(int x, int y, int button) {
 	for (int i = 0; i < quadVec.size(); i++) {
-		for (int j = 0; j < 4; j++) {
-			if (quadVec[i].pts[j].getSelected() == 1) {
-				quadVec[i].pts[j].setup(x, y);
-			}
-		}
+		float s = -transX; float d = -transY;
+		if (quadVec[i].pts[0].getSelected() == 1) { quadVec[i].pts[0].x = x-s; quadVec[i].pts[0].y = y+d; }
+		if (quadVec[i].pts[1].getSelected() == 1) { quadVec[i].pts[1].x = x-s; quadVec[i].pts[1].y = y+d; }
+		if (quadVec[i].pts[2].getSelected() == 1) { quadVec[i].pts[2].x = x-s; quadVec[i].pts[2].y = y+d; }
+		if (quadVec[i].pts[3].getSelected() == 1) { quadVec[i].pts[3].x = x-s; quadVec[i].pts[3].y = y+d; }
 	}
 	subdivVec.clear(); periQuadCellVec.clear();
 	if (drawSubdiv == 1) { initSubdiv(); }
@@ -470,19 +510,7 @@ void GuiApp::mouseDragged(int x, int y, int button) {
 }
 
 void GuiApp::mouseReleased(int x, int y, int button) {
-	for (int i = 0; i < quadVec.size(); i++) {
-		for (int j = 0; j < 4; j++) {
-			if (quadVec[i].pts[j].getSelected() == 1) {
-				quadVec[i].pts[j].setup(x, y);
-				quadVec[i].pts[j].setSelected(0);
-			}
-		}
-	}
-	for (int i = 0; i < quadVec.size(); i++) {
-		for (int j = 0; j < 4; j++) {
-			quadVec[i].pts[j].setSelected(0);
-		}
-	}
+	
 }
 
 Pt GuiApp::intx(Pt p, Pt q, Pt r, Pt s) {
