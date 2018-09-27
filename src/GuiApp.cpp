@@ -396,8 +396,22 @@ void GuiApp::update()
 	if (drawAdaptiveGrid==1) {
 		genAdaptiveGrid();
 	}
-
 	
+
+	vector<Pt> ptsforhull;
+	for (int i = 0; i < quadVec.size(); i++) {
+		Quad Q = quadVec[i];
+		Pt a = Q.pts[0];
+		Pt b = Q.pts[1];
+		Pt c = Q.pts[2];
+		Pt d = Q.pts[3];
+		ptsforhull.push_back(a);
+		ptsforhull.push_back(b);
+		ptsforhull.push_back(c);
+		ptsforhull.push_back(d);
+	}
+	genConvexHull(ptsforhull, ptsforhull.size());
+
 }
 
 void GuiApp::draw()
@@ -448,7 +462,6 @@ void GuiApp::draw()
 
 	ofPopMatrix();
 
-
 	ofColor(150); ofSetLineWidth(1);
 	ofSetColor(0);
 	MSG = "Keyboard Controls";
@@ -467,7 +480,12 @@ void GuiApp::draw()
 			ofNoFill(); ofEllipse(p.x + transX, p.y + transY, 20, 20);
 		}
 	}
-
+	
+	for (int i = 1; i < convexhull.size(); i++) {
+		Pt p = convexhull[i-1]; Pt q = convexhull[i];
+		ofSetLineWidth(7); ofSetColor(0, 0, 255, 50);
+		ofDrawLine(p.x, p.y, q.x, q.y);
+	}
 }
 
 void GuiApp::keyPressed(int key) {
@@ -492,9 +510,7 @@ void GuiApp::mouseMoved(int x, int y) {
 	}
 }
 
-void GuiApp::mousePressed(int x, int y, int button) {
-	
-}
+void GuiApp::mousePressed(int x, int y, int button) {}
 
 void GuiApp::mouseDragged(int x, int y, int button) {
 	for (int i = 0; i < quadVec.size(); i++) {
@@ -505,13 +521,10 @@ void GuiApp::mouseDragged(int x, int y, int button) {
 		if (quadVec[i].pts[3].getSelected() == 1) { quadVec[i].pts[3].x = x-s; quadVec[i].pts[3].y = y+d; }
 	}
 	subdivVec.clear(); periQuadCellVec.clear();
-	if (drawSubdiv == 1) { initSubdiv(); }
-	
+	if (drawSubdiv == 1) { initSubdiv(); }	
 }
 
-void GuiApp::mouseReleased(int x, int y, int button) {
-	
-}
+void GuiApp::mouseReleased(int x, int y, int button) {}
 
 Pt GuiApp::intx(Pt p, Pt q, Pt r, Pt s) {
 	float a1 = q.y - p.y; float b1 = p.x - q.x; float c1 = a1*q.x + b1*q.y;
@@ -519,4 +532,51 @@ Pt GuiApp::intx(Pt p, Pt q, Pt r, Pt s) {
 	float det = a1*b2 - a2*b1;
 	float rx = (c1*b2 - c2*b1) / det; float ry = (c2*a1 - c1*a2) / det;
 	return Pt(rx, ry);
+}
+
+int GuiApp::orientationPts(Pt p, Pt q, Pt r) {
+	int val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+	if (val == 0) return 0; // collinear 
+	return (val > 0) ? 1 : 2; // clock or counterclock wise 
+}
+
+void GuiApp::genConvexHull(vector<Pt> pts, int n) {
+	convexhull.clear();
+	vector<Pt> hull;
+	if (n < 3) { return; }
+	int r = 0;
+	for (int i = 1; i < n; i++) {
+		if (pts[i].x < pts[r].x) { r = i; }
+	}
+	int p = r, q;
+	do {
+		hull.push_back(pts[p]); q = (p + 1) % n;
+		for (int i = 0; i < n; i++) {
+			if (orientationPts(pts[p], pts[i], pts[q]) == 2) { q = i; }
+		}
+		p = q;
+	} while (p != r);
+	
+	hull.push_back(hull[0]);
+
+	convexhull = hull;
+
+	/*
+	if (n < 3) { println("nope"); return; }
+	Vector<Pt> hull = new Vector<Pt>();
+	int r = 0;
+	for (int i = 1; i < n; i++) {
+	if (points[i].x < points[r].x) { r = i; }
+	}
+	int p = r, q;
+	do
+	{
+	hull.add(points[p]);  q = (p + 1) % n;
+	for (int i = 0; i < n; i++) {
+	if (orientation(points[p], points[i], points[q]) == 2) { q = i; }
+	}
+	p = q;
+	} while (p != r);
+
+	*/
 }

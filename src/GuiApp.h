@@ -44,6 +44,8 @@ public:
 	void genAdaptiveGrid();
 	Pt intx(Pt a, Pt b, Pt c, Pt d);
 	int intxPts(Pt p, Pt q, Pt r, Pt s);
+	int orientationPts(Pt, Pt, Pt);
+	void genConvexHull(vector<Pt>, int);
 
 	/*	VARIABLES	*/
 	vector<Pt> ptVec; // during the rw mcts
@@ -54,6 +56,7 @@ public:
 	vector<vector<Quad>> subdivVec; // collects all subdiv quads
 	vector<Pt> rwQuadPtVec; // sorting and centering
 	vector<Seg> adaptiveGridSegVec;
+	vector<Pt> convexhull;//global variable for convex hull points
 
 	/*	CENTERING VARIABLES	*/
 	float cenx, ceny;
