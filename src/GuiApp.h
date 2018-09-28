@@ -36,6 +36,7 @@ public:
 	void mouseReleased(int x, int y, int button);
 
 	/*	METHODS	*/
+	vector<Pt> Lerp(Pt, Pt, Pt);
 	void initRW();
 	void construct(int);
 	void initSubdiv();
@@ -46,7 +47,8 @@ public:
 	int intxPts(Pt p, Pt q, Pt r, Pt s);
 	int orientationPts(Pt, Pt, Pt);
 	void genConvexHull(vector<Pt>, int);
-
+	void genconvexhullcrv();
+	
 	/*	VARIABLES	*/
 	vector<Pt> ptVec; // during the rw mcts
 	vector<Quad> outerquadvec;	// rw quads 	
@@ -56,7 +58,8 @@ public:
 	vector<vector<Quad>> subdivVec; // collects all subdiv quads
 	vector<Pt> rwQuadPtVec; // sorting and centering
 	vector<Seg> adaptiveGridSegVec;
-	vector<Pt> convexhull;//global variable for convex hull points
+	vector<Pt> convexhullpts;//global variable for convex hull points
+	vector<Pt> convexhullcrvpts;//global variable for convex hull curve points
 
 	/*	CENTERING VARIABLES	*/
 	float cenx, ceny;
@@ -80,7 +83,10 @@ public:
 	int drawSubdiv = 0;
 	int drawPeri = 0;
 	int drawAdaptiveGrid = 0;
+	int genconvexhull = 0;
 	string MSG = "";
+
+
 	int global_image_counter = 0;
 
 	/*	gui 1  parameters and objects	*/
@@ -143,6 +149,10 @@ public:
 	ofParameter<float> spaceiniquads;
 	ofParameter<float> transX;
 	ofParameter<float> transY;
+	ofParameter<float> scalehull;
+	ofParameter<float> ICurvature;
+	ofParameter<bool> manipulatequads;
+	ofParameter<bool> manipulatehull;
 	ofxPanel gui2;
 };
 

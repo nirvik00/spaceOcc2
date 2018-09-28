@@ -13,6 +13,65 @@ int GuiApp::intxPts(Pt p, Pt q, Pt r, Pt s) {
 	else { return 0; }
 }
 
+/* ns util functions */
+vector<Pt>GuiApp::Lerp(Pt a, Pt b, Pt c) {
+	Pt ab[20]; Pt bc[20]; vector<Pt> pts;
+	int k = 0;
+	float n = 1.f / 20.f;
+	for (float i = 0.f; i < 1.f; i += n) {
+		ab[k].setup(a.x + (b.x - a.x)*i, a.y + (b.y - a.y)*i);
+		bc[k].setup(b.x + (c.x - b.x)*i, b.y + (c.y - b.y)*i);
+		k++;
+	}
+	k = 0;
+	for (float i = 0.f; i < 1.f; i += n) {
+		float x = ab[k].x + (bc[k].x - ab[k].x)*i;
+		float y = ab[k].y + (bc[k].y - ab[k].y)*i;
+		Pt e(x, y);
+		pts.push_back(e);
+		k++;
+	}
+	return pts;
+}
+
+
+void GuiApp::genconvexhullcrv() {
+	convexhullcrvpts.clear();
+	for (int i = 0; i < convexhullpts.size(); i++) {
+		Pt a, b, c;
+		if (i == convexhullpts.size() - 2) {
+			a = convexhullpts[convexhullpts.size() - 2];
+			b = convexhullpts[convexhullpts.size() - 1];
+			c = convexhullpts[0];
+		}
+		else if (i == convexhullpts.size() - 1) {
+			a = convexhullpts[convexhullpts.size() - 1];
+			b = convexhullpts[0];
+			c = convexhullpts[1];
+		}
+		else {
+			a = convexhullpts[i];
+			b = convexhullpts[i + 1];
+			c = convexhullpts[i + 2];
+		}
+
+		Pt a_(a.x + (b.x - a.x)*ICurvature, a.y + (b.y - a.y)*ICurvature);
+		Pt c_(c.x + (b.x - c.x)*ICurvature, c.y + (b.y - c.y)*ICurvature);
+		Pt ba(b.x + (a.x - b.x)*ICurvature, b.y + (a.y - b.y)*ICurvature);
+		Pt bc(b.x + (c.x - b.x)*ICurvature, b.y + (c.y - b.y)*ICurvature);
+
+		for (float j = 0; j < 1.0; j += 0.1) {
+			Pt p(ba.x + (a_.x - ba.x)*j, ba.y + (a_.y - ba.y)*j);
+			convexhullcrvpts.push_back(p);
+		}
+		vector<Pt> pts = Lerp(a_, b, c_);
+		for (int j = 0; j < pts.size(); j++) {
+			Pt p = pts[j];
+			convexhullcrvpts.push_back(p);
+		}
+	}
+}
+
 /* rw system */
 void GuiApp::initRW() {
 	outerquadvec.clear(); quadVec.clear(); ptVec.clear(); subdivVec.clear(); 
@@ -373,8 +432,22 @@ void GuiApp::setup()
 	grp2params.add(spaceiniquads.set("inital quad spacing", 5,0,20));
 	grp2params.add(transX.set("translate X", 0, 0, ofGetWidth()/2));
 	grp2params.add(transY.set("translate Y", 0, 0, ofGetHeight()/2));
+	grp2params.add(scalehull.set("scale Cx. hull", 1, 1, 5));
+	grp2params.add(ICurvature.set("C. Hull Curvature", 0.75, 0.51, 0.99));	
+	grp2params.add(manipulatequads.set("manipulate quads", false));
+	grp2params.add(manipulatehull.set("manipulate hull", false));
 	gui2.setup(grp2params);
 	gui2.setPosition(ofGetWidth()-200, 0);
+
+	MSG = "Keyboard Controls";
+	MSG += "\n--------------------";
+	MSG += "\n1. Press 'e' or 'E' for config generations";
+	MSG += "\n2. Press 'r' or 'R' for quad subdivisons";
+	MSG += "\n3. Press 't' or 'T' for peripheral cells";
+	MSG += "\n4. Press 'h' or 'H' for adaptive grids";
+	MSG += "\n5. Press 'c' or 'C' to generate convex hull";
+	MSG += "\n6. Press 'x' or 'X' to delete convex hull";
+
 }
 
 void GuiApp::update()
@@ -395,22 +468,42 @@ void GuiApp::update()
 	
 	if (drawAdaptiveGrid==1) {
 		genAdaptiveGrid();
+	}	
+
+	//generate convex hull
+	if (genconvexhull == 1 && manipulatehull==false) {
+		vector<Pt> ptsforhull;
+		for (int i = 0; i < quadVec.size(); i++) {
+			Quad Q = quadVec[i];
+			Pt a = Q.pts[0];
+			Pt b = Q.pts[1];
+			Pt c = Q.pts[2];
+			Pt d = Q.pts[3];
+			Pt m((a.x + c.x) / 2, (a.y + c.y) / 2);
+			Pt a_(m.x + (a.x - m.x)*scalehull, m.y + (a.y - m.y)*scalehull);
+			Pt b_(m.x + (b.x - m.x)*scalehull, m.y + (b.y - m.y)*scalehull);
+			Pt c_(m.x + (c.x - m.x)*scalehull, m.y + (c.y - m.y)*scalehull);
+			Pt d_(m.x + (d.x - m.x)*scalehull, m.y + (d.y - m.y)*scalehull);
+			ptsforhull.push_back(a_);
+			ptsforhull.push_back(b_);
+			ptsforhull.push_back(c_);
+			ptsforhull.push_back(d_);
+		}	
+		// update global vector of points and renders directly in draw
+		genConvexHull(ptsforhull, ptsforhull.size());
+		// use the global vector to generate curves	
+		genconvexhullcrv();
+	}
+	if(genconvexhull==0){
+		convexhullcrvpts.clear();
+		convexhullpts.clear();
+	}
+	if (manipulatehull == true) {
+		//if (convexhullpts.size() > 0) {
+			genconvexhullcrv();
+		//}
 	}
 	
-
-	vector<Pt> ptsforhull;
-	for (int i = 0; i < quadVec.size(); i++) {
-		Quad Q = quadVec[i];
-		Pt a = Q.pts[0];
-		Pt b = Q.pts[1];
-		Pt c = Q.pts[2];
-		Pt d = Q.pts[3];
-		ptsforhull.push_back(a);
-		ptsforhull.push_back(b);
-		ptsforhull.push_back(c);
-		ptsforhull.push_back(d);
-	}
-	genConvexHull(ptsforhull, ptsforhull.size());
 
 }
 
@@ -422,7 +515,9 @@ void GuiApp::draw()
 	ofTranslate(transX, transY);
 
 	if (drawCmd == 1) {
-		for (int i = 0; i < quadVec.size(); i++) { quadVec[i].display(to_string(i)); }
+		for (int i = 0; i < quadVec.size(); i++) { 
+			quadVec[i].display(to_string(i)); 
+		}
 		for (int i = 0; i < quadVec.size(); i++) {
 			Quad q = quadVec[i];
 			vector<Pt> pts = q.getPts();
@@ -452,47 +547,86 @@ void GuiApp::draw()
 	}
 
 	/* handle manual mode  */
-	for (int i = 0; i < quadVec.size(); i++) {
-		for (int j = 0; j < 4; j++) {
-			if (quadVec[i].pts[j].getSelected() == 1) {
-				ofFill(); ofSetColor(200, 0, 0, 150); ofEllipse(quadVec[i].pts[j].x, quadVec[i].pts[j].y, 15, 15);
+	if (manipulatequads == true) {
+		for (int i = 0; i < quadVec.size(); i++) {
+			for (int j = 0; j < 4; j++) {
+				if (quadVec[i].pts[j].getSelected() == 1) {
+					ofFill(); ofSetColor(200, 0, 0, 150);
+					ofEllipse(quadVec[i].pts[j].x, quadVec[i].pts[j].y, 15, 15);
+				}
 			}
 		}
 	}
+	
+
+	/* plot the convex hull - created in update */
+	if (manipulatehull == true && convexhullpts.size()>0) {
+		for (int i = 0; i < convexhullpts.size(); i++) {
+			Pt p = convexhullpts[i];
+			if (p.getSelected() == 1) {
+				ofFill(); ofSetColor(200, 0, 0, 150);
+			}
+			else {
+				ofNoFill(); 
+			}
+			 ofEllipse(p.x, p.y, 15, 15);
+		}
+	}
+	for (int i = 1; i < convexhullpts.size(); i++) {
+		Pt p = convexhullpts[i - 1]; Pt q = convexhullpts[i];
+		ofSetLineWidth(1); ofSetColor(0, 0, 255, 50);
+		ofDrawLine(p.x, p.y, q.x, q.y);
+	}
+		
+	for (int i = 1; i < convexhullcrvpts.size(); i++) {
+		Pt p = convexhullcrvpts[i-1]; Pt q = convexhullcrvpts[i];
+		ofSetLineWidth(7); ofFill(); ofSetColor(250,0,0,150); ofDrawLine(p.x, p.y, q.x, q.y);
+	}			
+	
 
 	ofPopMatrix();
 
 	ofColor(150); ofSetLineWidth(1);
 	ofSetColor(0);
-	MSG = "Keyboard Controls";
-	MSG += "\n--------------------";
-	MSG += "\n1. Press 'e' or 'E' for config generations";
-	MSG += "\n2. Press 'r' or 'R' for quad subdivisons";
-	MSG += "\n3. Press 't' or 'T' for peripheral cells";
-	MSG += "\n4. Press 'h' or 'H' for adaptive grids";
+
 	ofDrawBitmapString(MSG, 700, 20);
 
 	gui.draw();
 	gui2.draw();	
-	for (int i = 0; i < quadVec.size(); i++) {
-		for (int j = 0; j < 4; j++) {
-			Pt p = quadVec[i].pts[j];
-			ofNoFill(); ofEllipse(p.x + transX, p.y + transY, 20, 20);
+
+	if (manipulatequads == true) {
+		manipulatehull.set(false);
+		for (int i = 0; i < quadVec.size(); i++) {
+			for (int j = 0; j < 4; j++) {
+				Pt p = quadVec[i].pts[j];
+				ofNoFill(); ofEllipse(p.x + transX, p.y + transY, 20, 20);
+			}
 		}
-	}
-	
-	for (int i = 1; i < convexhull.size(); i++) {
-		Pt p = convexhull[i-1]; Pt q = convexhull[i];
-		ofSetLineWidth(7); ofSetColor(0, 0, 255, 50);
-		ofDrawLine(p.x, p.y, q.x, q.y);
+	}	
+
+	for (int i = 0; i < convexhullpts.size(); i++) {
+		Pt p = convexhullpts[i];
+		if (p.getSelected() == 1) {
+			ofFill(); ofSetColor(200, 0, 0, 150);
+		}
+		else {
+			ofNoFill();
+		}
+		ofEllipse(p.x + transX, p.y + transY, 15, 15);
 	}
 }
 
 void GuiApp::keyPressed(int key) {
-	if (key == 'e' || key == 'E') { initRW(); drawCmd = 1; }
+	if (key == 'e' || key == 'E') {
+		convexhullcrvpts.clear();
+		convexhullpts.clear(); 
+		initRW(); drawCmd = 1; 
+	}
 	if (key == 'r' || key == 'R') { initSubdiv(); drawSubdiv = 1;  drawAdaptiveGrid = 0; }
 	if (key == 't' || key == 'T') { initPeri(); drawPeri = 1;  drawAdaptiveGrid = 0; initPeri(); }
 	if (key == 'h' || key == 'H') { genAdaptiveGrid(); drawAdaptiveGrid = 1;}
+	if (key == 'c' || key == 'C') { genconvexhull = 1; }
+	if (key == 'x' || key == 'X') { genconvexhull = 0; }
 	if (key == 's' || key == 'S') {
 		global_image_counter++;
 		ofImage screenshot;
@@ -502,26 +636,56 @@ void GuiApp::keyPressed(int key) {
 }
 
 void GuiApp::mouseMoved(int x, int y) {
-	for (int i = 0; i < quadVec.size(); i++) {
-		if (quadVec[i].pts[0].di(Pt(x - transX, y - transY)) < 25) { quadVec[i].pts[0].setSelected(1); } else { quadVec[i].pts[0].setSelected(0); }
-		if (quadVec[i].pts[1].di(Pt(x - transX, y - transY)) < 25) { quadVec[i].pts[1].setSelected(1); } else { quadVec[i].pts[1].setSelected(0); }
-		if (quadVec[i].pts[2].di(Pt(x - transX, y - transY)) < 25) { quadVec[i].pts[2].setSelected(1); } else { quadVec[i].pts[2].setSelected(0); }
-		if (quadVec[i].pts[3].di(Pt(x - transX, y - transY)) < 25) { quadVec[i].pts[3].setSelected(1); } else { quadVec[i].pts[3].setSelected(0); }
+	Pt m(x - transX, y - transY);
+	if (manipulatequads == true) {
+		for (int i = 0; i < quadVec.size(); i++) {
+			for (int j = 0; j < 4; j++) {
+				if (quadVec[i].pts[j].di(m) < 25) {
+					quadVec[i].pts[j].setSelected(1);
+				}
+				else {
+					quadVec[i].pts[j].setSelected(0);
+				}
+			}
+		}
 	}
+	
+	if (manipulatehull == true) {
+		for (int i = 0; i < convexhullpts.size(); i++) {
+			if (convexhullpts[i].di(m) < 25) {
+				convexhullpts[i].setSelected(1);
+				cout << "hull point selected" << endl;
+			}
+			else {
+				convexhullpts[i].setSelected(0);
+			}
+		}
+	}
+	
+	
 }
 
 void GuiApp::mousePressed(int x, int y, int button) {}
 
 void GuiApp::mouseDragged(int x, int y, int button) {
-	for (int i = 0; i < quadVec.size(); i++) {
-		float s = -transX; float d = -transY;
-		if (quadVec[i].pts[0].getSelected() == 1) { quadVec[i].pts[0].x = x-s; quadVec[i].pts[0].y = y+d; }
-		if (quadVec[i].pts[1].getSelected() == 1) { quadVec[i].pts[1].x = x-s; quadVec[i].pts[1].y = y+d; }
-		if (quadVec[i].pts[2].getSelected() == 1) { quadVec[i].pts[2].x = x-s; quadVec[i].pts[2].y = y+d; }
-		if (quadVec[i].pts[3].getSelected() == 1) { quadVec[i].pts[3].x = x-s; quadVec[i].pts[3].y = y+d; }
+	Pt m(x - transX, y - transY);
+	if (manipulatequads == true) {
+		for (int i = 0; i < quadVec.size(); i++) {
+			for (int j = 0; j < 4; j++) {
+				if (quadVec[i].pts[j].getSelected() == 1) {
+					quadVec[i].pts[j].setup(m.x, m.y);
+				}
+			}
+		}
 	}
-	subdivVec.clear(); periQuadCellVec.clear();
-	if (drawSubdiv == 1) { initSubdiv(); }	
+	if (manipulatehull == true) {
+		for (int i = 0; i < convexhullpts.size(); i++) {
+			if (convexhullpts[i].getSelected() == 1) {
+				convexhullpts[i].setup(m.x, m.y);
+			}
+		}
+	}
+	
 }
 
 void GuiApp::mouseReleased(int x, int y, int button) {}
@@ -541,7 +705,7 @@ int GuiApp::orientationPts(Pt p, Pt q, Pt r) {
 }
 
 void GuiApp::genConvexHull(vector<Pt> pts, int n) {
-	convexhull.clear();
+	convexhullpts.clear();
 	vector<Pt> hull;
 	if (n < 3) { return; }
 	int r = 0;
@@ -559,7 +723,7 @@ void GuiApp::genConvexHull(vector<Pt> pts, int n) {
 	
 	hull.push_back(hull[0]);
 
-	convexhull = hull;
+	convexhullpts = hull;
 
 	/*
 	if (n < 3) { println("nope"); return; }
